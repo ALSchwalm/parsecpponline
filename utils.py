@@ -12,11 +12,25 @@ def get_root_cursors(source, filename=None):
         yield cursor
 
 
+def format_kind(kind):
+    return str(kind).split(".")[1]
+
+
+def format_label(cursor):
+    if cursor.spelling:
+        return "{kind} ({spelling})".format(kind=format_kind(cursor.kind),
+                                            spelling=cursor.spelling)
+    else:
+        return format_kind(cursor.kind)
+
+id = 0
 def format_cursor(cursor, children):
+    global id
+    id += 1
     return {
-        "spelling": cursor.spelling,
-        "label": str(cursor.kind),
+        "label": format_label(cursor),
         "children": children,
+        "id": id,
         "location": {
             "start": [cursor.extent.start.line,
                       cursor.extent.start.column],
