@@ -1,4 +1,4 @@
-from clang.cindex import Cursor
+from clang.cindex import Cursor, CursorKind
 
 
 def get_root_cursors(source, filename=None):
@@ -12,20 +12,28 @@ def get_root_cursors(source, filename=None):
         yield cursor
 
 
+def format_cursor(cursor, children):
+    return {
+        "spelling": cursor.spelling,
+        "label": str(cursor.kind),
+        "children": children,
+        "location": {
+            "start": [cursor.extent.start.line,
+                      cursor.extent.start.column],
+            "end": [cursor.extent.end.line,
+                    cursor.extent.end.column]
+        }
+    }
+
+
 def get_child_cursor_preorder(root):
-    #TODO: filter unexposed
     def inner(root):
         children = []
         for child in root.get_children():
-            sub = {
-                "spelling": child.spelling,
-                "kind": str(child.kind),
-                "children": inner(child)
-            }
-            children.append(sub)
+            if child.kind == CursorKind.UNEXPOSED_EXPR:
+                children.extend(inner(child))
+                continue
+            children.append(format_cursor(child,
+                                          inner(child)))
         return children
-    return {
-        "spelling": root.spelling,
-        "kind": str(root.kind),
-        "children": inner(root)
-    }
+    return format_cursor(root, inner(root))

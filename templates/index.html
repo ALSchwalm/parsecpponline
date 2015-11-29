@@ -1,14 +1,64 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <script type="text/javascript" src="/static/js/lib/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="/static/js/lib/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/js/lib/codemirror.js"></script>
+    <script type="text/javascript" src="/static/js/lib/tree.jquery.js"></script>
+    <link rel="stylesheet" href="/static/css/lib/codemirror.css">
+    <link rel="stylesheet" href="/static/css/lib/jqtree.css">
+    <link rel="stylesheet" href="/static/css/lib/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+  </head>
   <body>
-    <form action="/parse" method="post">
-      <textarea name="source" rows="4" cols="50">
-int main() {
-    int x;
-}
-      </textarea>
+    <div id="content-container" class="container">
+      <nav class="navbar navbar-default" role="navigation">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="/">Parse Online</a>
+          </div>
+          <div id="navbar" class="navbar-collapse">
+            <ul class="nav navbar-nav pages">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="/about">About</a></li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+      <div id="editor-container" class="jumbotron">
+        <div class="row">
+          <form action="/parse" method="GET" id="editor-form">
+          {% if not default_page %}
+            <div id="tree" class="col-md-4"></div>
+            <textarea id="editor" class="editor col-md-8" name="source">{{source}}</textarea>
+          {% else %}
+            <div id="editor-run" class="editor-control button">Parse</div>
+            <textarea id="editor" class="editor col-md-12" name="source">{{source}}</textarea>
+          {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+     $(document).ready(
+       function(){
+         editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+           styleActiveLine: true,
+           lineNumbers: true,
+         });
 
-      <input type="submit">
-    </form>
+         $("#editor-run").click(function(){
+           $("#editor-form").submit();
+         })
+
+         data = {{parsed | safe}};
+         editor.markText({line: 0, ch:0}, {line:1, ch:3}, {className:"foo"});
+
+         $('#tree').tree({
+           data: data.ast
+         });
+         console.log(data);
+       });
+    </script>
   </body>
 </html>
