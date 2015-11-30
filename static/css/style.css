@@ -18,3 +18,11 @@
     vertical-align: middle;
     line-height: 30px;
 }
+
+.ast-component-semi-active {
+    text-decoration: underline;
+}
+
+.ast-component-active {
+    background-color: #bcd4e4;
+}

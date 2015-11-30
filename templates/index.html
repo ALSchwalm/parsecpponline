@@ -76,15 +76,29 @@
            onCreateLi: function(node, $li) {
              $li.find('div:has(span.jqtree_common)')
                 .hover(function(event){
-                  $(".ast-component").css("background-color", "");
-                  $(".ast-component-" + node.id).css("background-color","red");
+                  $(".ast-component").removeClass("ast-component-semi-active");
+                  $(".ast-component-" + node.id).addClass("ast-component-semi-active")
                   event.stopPropagation();
                 }, function(event){
-                  $(".ast-component").css("background-color", "");
+                  $(".ast-component").removeClass("ast-component-semi-active");
                   event.stopPropagation();
                 });
            }
          });
+
+         $('#tree').bind('tree.select',
+           function(event) {
+             if (event.node) {
+               var node = event.node;
+               $(".ast-component").removeClass("ast-component-active");
+               $(".ast-component-" + node.id).addClass("ast-component-active");
+             }
+             else {
+               var node = event.previous_node;
+               $(".ast-component-" + node.id).removeClass("ast-component-active");
+             }
+           }
+         );
        });
     </script>
   </body>
