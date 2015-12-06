@@ -38,6 +38,14 @@
           </form>
         </div>
       </div>
+      <div id="info-container" class="jumbotron">
+        <div class="row">
+          <div id="tree" class="col-md-12">
+            <h2>Declaration</h2>
+            <p>Declarations introduce (or re-introduce) names into the C++ program. Each kind of entity is declared differently. Definitions are declarations that are sufficient to use the entity identified by the name.</p>
+          </div>
+        </div>
+      </div>
     </div>
     <script>
      function traverse(obj, callback) {
@@ -92,10 +100,12 @@
                var node = event.node;
                $(".ast-component").removeClass("ast-component-active");
                $(".ast-component-" + node.id).addClass("ast-component-active");
+               $("#info-container").show();
              }
              else {
                var node = event.previous_node;
                $(".ast-component-" + node.id).removeClass("ast-component-active");
+               $("#info-container").hide();
              }
            }
          );
