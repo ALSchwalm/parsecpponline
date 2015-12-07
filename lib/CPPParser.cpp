@@ -83,8 +83,12 @@ public:
         auto original_node = current_node;
         if (!std::string(D->getDeclKindName()).empty()) {
             auto node = make_node();
-            list children = extract<list>((*current_node)["children"]);
-            children.append(node);
+            if (current_node) {
+                list children = extract<list>((*current_node)["children"]);
+                children.append(node);
+            } else {
+                ast.append(node);
+            }
             current_node = &node;
         }
         auto ret = RecursiveASTVisitor<ASTDictBuilder>::TraverseDecl(D);
@@ -99,8 +103,12 @@ public:
         auto original_node = current_node;
         if (!std::string(S->getStmtClassName()).empty()) {
             auto node = make_node();
-            list children = extract<list>((*current_node)["children"]);
-            children.append(node);
+            if (current_node) {
+                list children = extract<list>((*current_node)["children"]);
+                children.append(node);
+            } else {
+                ast.append(node);
+            }
             current_node = &node;
         }
         auto ret = RecursiveASTVisitor<ASTDictBuilder>::TraverseStmt(S);
@@ -108,12 +116,10 @@ public:
         return ret;
     }
 
-    void HandleTranslationUnit(ASTContext& ctx) override {
-        TranslationUnitDecl* D = ctx.getTranslationUnitDecl();
-        auto node = make_node();
-        ast.append(node);
-        current_node = &node;
-        TraverseDecl(D);
+    virtual bool HandleTopLevelDecl(DeclGroupRef DR) {
+        for (DeclGroupRef::iterator d = DR.begin(), e = DR.end(); d != e; ++d)
+            TraverseDecl(*d);
+        return true;
     }
 
     ASTDictBuilder(const SourceManager* SM) : SM{SM} {}

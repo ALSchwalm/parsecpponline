@@ -1,6 +1,6 @@
 LLVM_LDFLAGS := `llvm-config --ldflags --libs --system-libs`
 
-PYTHON_CXXFLAGS := `python2-config --includes`
+PYTHON_CXXFLAGS := `python-config --includes`
 
 CLANG_LIBS := \
 	-Wl,--start-group \
@@ -26,9 +26,9 @@ CLANG_LIBS := \
 	-lclangTooling \
 	-Wl,--end-group
 
-BOOST_LIBS :=  -lpython2.7 -lboost_python
+BOOST_LIBS :=  -lpython3 -lboost_python3
 
 all:
-	clang++ -shared -o cppparser.so -fpic CPPParser.cpp -std=c++11 \
+	clang++ -shared -o ../cppparser.so -g -fpic CPPParser.cpp -std=c++11 \
 	$(CLANG_LIBS) $(BOOST_LIBS) \
 	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
