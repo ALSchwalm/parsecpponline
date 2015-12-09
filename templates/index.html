@@ -72,10 +72,11 @@
          data = {{parsed | safe}};
 
          traverse(data.ast, function(obj){
+           if (!obj.location) return;
            editor.markText({line:obj.location.start[0]-1,
                             ch:obj.location.start[1]-1},
                            {line:obj.location.end[0]-1,
-                            ch:obj.location.end[1]-1},
+                            ch:obj.location.end[1]},
                            {className:"ast-component ast-component-" + obj.id});
          });
 

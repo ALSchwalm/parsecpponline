@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 from cppparser import CPPParser
 import json
 
@@ -13,12 +13,14 @@ def parse_source(source):
         "errors": []
     })
 
+
 @app.route("/parse", methods=["GET"])
 def parse_get():
     source = request.args.get('source', '')
     return render_template("index.html", source=source,
                            parsed=parse_source(source),
                            default_page=False)
+
 
 @app.route("/")
 def index():
