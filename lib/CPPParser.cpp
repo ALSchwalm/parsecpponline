@@ -22,11 +22,23 @@
 #include "clang/Frontend/ASTConsumers.h"
 
 #include <boost/python.hpp>
-#include <iostream>
 
 using namespace clang;
 using namespace clang::tooling;
 using namespace boost::python;
+
+#ifdef DEBUG
+#include <iostream>
+
+template <typename... T>
+void debug_print_impl(const T&... args) {
+    [](auto...) {}((std::cout << args, 0)...);
+    std::cout << std::endl;
+}
+#define debug_print(...) debug_print_impl(__VA_ARGS__)
+#else
+#define debug_print(...)
+#endif
 
 // For now, I don't know how to actually get an argument to
 // the ASTConsumer from outside the FrontendFactory, so just use
@@ -38,6 +50,9 @@ class ASTDictBuilder : public ASTConsumer,
 
     const SourceManager* SM;
     dict* current_node = nullptr;
+
+    static std::set<Decl::Kind> declSkipList;
+    static std::set<Stmt::StmtClass> stmtSkipList;
 
     static int node_counter;
     static dict make_node() {
@@ -78,6 +93,10 @@ class ASTDictBuilder : public ASTConsumer,
 
 public:
     bool VisitStmt(const Stmt* S) {
+        if (stmtSkipList.count(S->getStmtClass())) {
+            return true;
+        }
+        debug_print("Visiting statement: ", S->getStmtClassName());
         auto& node = *current_node;
         node["label"] = S->getStmtClassName();
         addLocation(node, S);
@@ -85,6 +104,7 @@ public:
     }
 
     bool VisitDecl(const Decl* D) {
+        debug_print("Visiting decl: ", D->getDeclKindName());
         auto& node = *current_node;
         node["label"] = D->getDeclKindName() + std::string("Decl");
         addLocation(node, D);
@@ -92,11 +112,13 @@ public:
     }
 
     bool TraverseDecl(Decl* D) {
-        if (!D) {
+        if (!D || D->isInvalidDecl() || D->isImplicit()) {
             return true;
         }
+
         auto original_node = current_node;
         if (!std::string(D->getDeclKindName()).empty()) {
+            debug_print("Adding node for decl: ", D->getDeclKindName());
             auto node = make_node();
             if (current_node) {
                 list children = extract<list>((*current_node)["children"]);
@@ -115,12 +137,17 @@ public:
         if (!S) {
             return true;
         }
+
         auto original_node = current_node;
-        if (!std::string(S->getStmtClassName()).empty()) {
+        if (!std::string(S->getStmtClassName()).empty() &&
+            !stmtSkipList.count(S->getStmtClass())) {
+            debug_print("Adding node for statement: ", S->getStmtClassName());
             auto node = make_node();
             list children = extract<list>((*current_node)["children"]);
             children.append(node);
             current_node = &node;
+        } else {
+            debug_print("Not adding node for: ", S->getStmtClassName());
         }
         RecursiveASTVisitor<ASTDictBuilder>::TraverseStmt(S);
         current_node = original_node;
@@ -140,6 +167,12 @@ public:
 };
 
 int ASTDictBuilder::node_counter = 0;
+std::set<Decl::Kind> ASTDictBuilder::declSkipList = {};
+
+// Currently just the implicit expressions from Stmt::IgnoreImplicit
+std::set<Stmt::StmtClass> ASTDictBuilder::stmtSkipList =
+    {Stmt::MaterializeTemporaryExprClass, Stmt::ExprWithCleanupsClass,
+     Stmt::ImplicitCastExprClass, Stmt::CXXBindTemporaryExprClass};
 
 class BuildDictFrontendAction : public clang::ASTFrontendAction {
 public:

@@ -29,6 +29,6 @@ CLANG_LIBS := \
 BOOST_LIBS :=  -lpython3 -lboost_python3
 
 all:
-	clang++ -shared -o ../cppparser.so -g -fpic CPPParser.cpp -std=c++11 \
+	clang++ -shared -o ../cppparser.so -g -fpic CPPParser.cpp -std=c++14 -DDEBUG \
 	$(CLANG_LIBS) $(BOOST_LIBS) \
 	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
