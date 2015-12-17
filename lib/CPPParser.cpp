@@ -92,24 +92,8 @@ class ASTDictBuilder : public ASTConsumer,
     }
 
 public:
-    bool VisitStmt(const Stmt* S) {
-        if (stmtSkipList.count(S->getStmtClass())) {
-            return true;
-        }
-        debug_print("Visiting statement: ", S->getStmtClassName());
-        auto& node = *current_node;
-        node["label"] = S->getStmtClassName();
-        addLocation(node, S);
-        return true;
-    }
-
-    bool VisitDecl(const Decl* D) {
-        debug_print("Visiting decl: ", D->getDeclKindName());
-        auto& node = *current_node;
-        node["label"] = D->getDeclKindName() + std::string("Decl");
-        addLocation(node, D);
-        return true;
-    }
+#include "StatementVisitors.inc"
+#include "DeclarationVisitors.inc"
 
     bool TraverseDecl(Decl* D) {
         if (!D || D->isInvalidDecl() || D->isImplicit()) {
