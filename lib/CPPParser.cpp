@@ -124,6 +124,7 @@ public:
                 list children = extract<list>((*current_node)["children"]);
                 children.append(node);
             } else {
+                debug_print("  Node is at top level");
                 global_ast.append(node);
             }
             current_node = &node;
@@ -163,7 +164,9 @@ public:
         return true;
     }
 
-    ASTDictBuilder(const SourceManager* SM) : SM{SM} { global_ast = list{}; }
+    ASTDictBuilder(const SourceManager* SM) : SM{SM}, current_node{nullptr} {
+        global_ast = list{};
+    }
 };
 
 int ASTDictBuilder::node_counter = 0;
@@ -205,3 +208,7 @@ BOOST_PYTHON_MODULE(cppparser) {
     class_<CPPParser>("CPPParser", init<std::string>())
         .def_readonly("ast", &global_ast);
 }
+
+#ifdef DEBUG
+int main() { CPPParser("int main() {}"); }
+#endif

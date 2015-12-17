@@ -26,9 +26,14 @@ CLANG_LIBS := \
 	-lclangTooling \
 	-Wl,--end-group
 
-BOOST_LIBS :=  -lpython3 -lboost_python3
+BOOST_LIBS := -lboost_python3 -lpython3.5m
 
 all:
-	clang++ -shared -o ../cppparser.so -g -fpic CPPParser.cpp -std=c++14 -DDEBUG \
+	clang++ -shared -o ../cppparser.so -fpic CPPParser.cpp -std=c++14 \
+	$(CLANG_LIBS) $(BOOST_LIBS) \
+	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
+
+debug:
+	clang++ -o ../cppparser -g -fpic CPPParser.cpp -std=c++14 -DDEBUG \
 	$(CLANG_LIBS) $(BOOST_LIBS) \
 	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
