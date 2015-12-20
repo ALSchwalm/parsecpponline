@@ -59,8 +59,8 @@
      }
 
      function fillInfoContainer(container, node) {
-       container.find(".title").html(node["name"]);
-       container.find(".description").html(node["description"]);
+       container.find(".title").html(node["name"] || "");
+       container.find(".description").html(node["description"] || "");
      }
 
      $(document).ready(

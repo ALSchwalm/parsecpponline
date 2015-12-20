@@ -20,6 +20,9 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/ASTConsumers.h"
+#include "clang/Lex/Lexer.h"
+
+#include "clang-c/Index.h"
 
 #include <boost/python.hpp>
 
@@ -49,6 +52,7 @@ class ASTDictBuilder : public ASTConsumer,
                        public RecursiveASTVisitor<ASTDictBuilder> {
 
     const SourceManager* SM;
+    const ASTContext* Context;
     dict* current_node = nullptr;
 
     static std::set<Decl::Kind> declSkipList;
@@ -62,16 +66,44 @@ class ASTDictBuilder : public ASTConsumer,
         return node;
     }
 
+    ///  Adapted from clang CIndex.cpp
+    ///
+    /// Clang internally represents ranges where the end location points to the
+    /// start of the token at the end. However, for external clients it is more
+    /// useful to have a CXSourceRange be a proper half-open interval. This
+    /// routine
+    /// does the appropriate translation.
+    SourceRange translateSourceRange(const LangOptions& LangOpts,
+                                     const CharSourceRange& R) {
+        // We want the last character in this location, so we will adjust the
+        // location accordingly.
+        SourceLocation EndLoc = R.getEnd();
+        if (EndLoc.isValid() && EndLoc.isMacroID() &&
+            !SM->isMacroArgExpansion(EndLoc))
+            EndLoc = SM->getExpansionRange(EndLoc).second;
+        if (R.isTokenRange() && EndLoc.isValid()) {
+            unsigned Length =
+                Lexer::MeasureTokenLength(SM->getSpellingLoc(EndLoc), *SM,
+                                          LangOpts);
+            EndLoc = EndLoc.getLocWithOffset(Length);
+        }
+
+        SourceRange Result = {R.getBegin(), EndLoc};
+        return Result;
+    }
+
     template <typename T>
-    std::pair<std::pair<int, int>, std::pair<int, int>>
-    addLocation(dict& json_node, const T& ast_node) {
+    void addLocation(dict& json_node, const T& ast_node) {
         list start;
         list end;
         dict location;
         auto range = ast_node->getSourceRange();
+        auto& opts = Context->getLangOpts();
+        auto token_range = CharSourceRange::getTokenRange(range);
+        range = translateSourceRange(opts, token_range);
 
         if (!range.isValid())
-            return {{0, 0}, {0, 0}};
+            return;
 
         auto start_loc = SM->getExpansionLoc(range.getBegin());
         auto end_loc = SM->getExpansionLoc(range.getEnd());
@@ -88,7 +120,6 @@ class ASTDictBuilder : public ASTConsumer,
         location["start"] = start;
         location["end"] = end;
         json_node["location"] = location;
-        return {{start_row, start_column}, {end_row, end_column}};
     }
 
 public:
@@ -139,13 +170,20 @@ public:
         return true;
     }
 
-    virtual bool HandleTopLevelDecl(DeclGroupRef DR) {
+    virtual bool HandleTopLevelDecl(DeclGroupRef DR) override {
         for (DeclGroupRef::iterator d = DR.begin(), e = DR.end(); d != e; ++d) {
             if (SM->isInMainFile((*d)->getLocStart())) {
+                debug_print("Traversing top level decl: ",
+                            (*d)->getDeclKindName());
                 TraverseDecl(*d);
             }
         }
         return true;
+    }
+
+    virtual void Initialize(clang::ASTContext& Context) override {
+        debug_print("Init");
+        this->Context = &Context;
     }
 
     ASTDictBuilder(const SourceManager* SM) : SM{SM}, current_node{nullptr} {
@@ -170,7 +208,7 @@ public:
     }
 };
 
-static llvm::cl::OptionCategory MyToolCategory("my-tool options");
+static llvm::cl::OptionCategory MyToolCategory("");
 
 class CPPParser {
 public:

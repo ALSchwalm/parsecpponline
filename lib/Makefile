@@ -34,6 +34,6 @@ all:
 	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
 
 debug:
-	clang++ -o ../cppparser -g -fpic CPPParser.cpp -std=c++14 -DDEBUG \
+	clang++ -shared -o ../cppparser.so -g -fpic CPPParser.cpp -std=c++14 -DDEBUG \
 	$(CLANG_LIBS) $(BOOST_LIBS) \
 	$(LLVM_LDFLAGS) $(PYTHON_CXXFLAGS)
