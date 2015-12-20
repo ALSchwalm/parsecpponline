@@ -43,4 +43,24 @@ bool VisitCXXConstructExpr(const CXXConstructExpr*) {
     return true;
 }
 
+bool VisitCXXNewExpr(const CXXNewExpr*) {
+    auto& node = *current_node;
+    node["label"] = "New Expression";
+    node["description"] =
+        "New expressions create and initialize objects with dynamic storage "
+        "duration, that is, objects whose lifetime is not limited by the scope "
+        "in which they were created.";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/new";
+    return true;
+}
+
+bool VisitCXXMemberCallExpr(const CXXMemberCallExpr*) {
+    auto& node = *current_node;
+    node["label"] = "Member Function Call";
+    node["description"] = "A member function call is a function call to a "
+                          "non-static member function of a class.";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/member_functions";
+    return true;
+}
+
 #endif

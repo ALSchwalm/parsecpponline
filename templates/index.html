@@ -51,7 +51,9 @@
      function traverse(obj, callback) {
        for (i in obj) {
          if (typeof(obj[i])=="object") {
-           callback(obj[i]);
+           var result = callback(obj[i]);
+           if (result)
+             return result;
            if (obj[i].children.length)
              traverse(obj[i].children, callback);
          }
@@ -61,6 +63,20 @@
      function fillInfoContainer(container, node) {
        container.find(".title").html(node["name"] || "");
        container.find(".description").html(node["description"] || "");
+     }
+
+     function selectTreeNode(node) {
+       $(".ast-component").removeClass("ast-component-active");
+       $(".ast-component-" + node.id).addClass("ast-component-active");
+       fillInfoContainer($("#info-container"), node);
+       $("#info-container").show();
+       parent.location.hash = node.id;
+     }
+
+     function deselectTreeNode(node) {
+       $(".ast-component-" + node.id).removeClass("ast-component-active");
+       $("#info-container").hide();
+       parent.location.hash = "";
      }
 
      $(document).ready(
@@ -103,19 +119,18 @@
          $('#tree').bind('tree.select',
            function(event) {
              if (event.node) {
-               var node = event.node;
-               $(".ast-component").removeClass("ast-component-active");
-               $(".ast-component-" + node.id).addClass("ast-component-active");
-               fillInfoContainer($("#info-container"), node);
-               $("#info-container").show();
+               selectTreeNode(event.node);
              }
              else {
-               var node = event.previous_node;
-               $(".ast-component-" + node.id).removeClass("ast-component-active");
-               $("#info-container").hide();
+               deselectTreeNode(event.previous_node);
              }
            }
          );
+
+
+         var idFromURL = parseInt(parent.location.hash.replace("#", ""));
+         var node = $("#tree").tree('getNodeById', idFromURL);
+         $("#tree").tree('selectNode', node);
        });
     </script>
   </body>

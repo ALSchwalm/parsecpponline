@@ -58,8 +58,8 @@ class ASTDictBuilder : public ASTConsumer,
     static std::set<Decl::Kind> declSkipList;
     static std::set<Stmt::StmtClass> stmtSkipList;
 
-    static int node_counter;
-    static dict make_node() {
+    int node_counter = 0;
+    dict make_node() {
         dict node;
         node["children"] = list{};
         node["id"] = node_counter++;
@@ -73,10 +73,11 @@ class ASTDictBuilder : public ASTConsumer,
     /// useful to have a CXSourceRange be a proper half-open interval. This
     /// routine
     /// does the appropriate translation.
-    SourceRange translateSourceRange(const LangOptions& LangOpts,
-                                     const CharSourceRange& R) {
+    SourceRange translateSourceRange(const SourceRange& range) const {
         // We want the last character in this location, so we will adjust the
         // location accordingly.
+        auto R = CharSourceRange::getTokenRange(range);
+        auto& LangOpts = Context->getLangOpts();
         SourceLocation EndLoc = R.getEnd();
         if (EndLoc.isValid() && EndLoc.isMacroID() &&
             !SM->isMacroArgExpansion(EndLoc))
@@ -85,7 +86,7 @@ class ASTDictBuilder : public ASTConsumer,
             unsigned Length =
                 Lexer::MeasureTokenLength(SM->getSpellingLoc(EndLoc), *SM,
                                           LangOpts);
-            EndLoc = EndLoc.getLocWithOffset(Length);
+            EndLoc = EndLoc.getLocWithOffset(Length - 1);
         }
 
         SourceRange Result = {R.getBegin(), EndLoc};
@@ -98,9 +99,7 @@ class ASTDictBuilder : public ASTConsumer,
         list end;
         dict location;
         auto range = ast_node->getSourceRange();
-        auto& opts = Context->getLangOpts();
-        auto token_range = CharSourceRange::getTokenRange(range);
-        range = translateSourceRange(opts, token_range);
+        range = translateSourceRange(range);
 
         if (!range.isValid())
             return;
@@ -191,7 +190,6 @@ public:
     }
 };
 
-int ASTDictBuilder::node_counter = 0;
 std::set<Decl::Kind> ASTDictBuilder::declSkipList = {};
 
 // Currently just the implicit expressions from Stmt::IgnoreImplicit
