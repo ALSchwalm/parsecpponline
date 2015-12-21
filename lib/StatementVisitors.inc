@@ -14,7 +14,7 @@ bool VisitStmt(const Stmt* S) {
 
 bool VisitDeclStmt(const DeclStmt*) {
     auto& node = *current_node;
-    node["label"] = "Declaration";
+    node["label"] = "Declaration Statement";
     node["description"] =
         "Declarations introduce (or re-introduce) names into a C++ program. "
         "Each kind of entity is declared differently.";
@@ -60,6 +60,17 @@ bool VisitCXXMemberCallExpr(const CXXMemberCallExpr*) {
     node["description"] = "A member function call is a function call to a "
                           "non-static member function of a class.";
     node["link"] = "http://en.cppreference.com/w/cpp/language/member_functions";
+    return true;
+}
+
+bool VisitInitListExpr(const InitListExpr*) {
+    auto& node = *current_node;
+    node["label"] = "Braced Initializer List";
+    node["description"] = "A braced initializer list is a (possibly empty) "
+                          "list of expressions or nested lists that is used "
+                          "during list initialization.";
+    node["link"] =
+        "http://en.cppreference.com/w/cpp/language/list_initialization";
     return true;
 }
 

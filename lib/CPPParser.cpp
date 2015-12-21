@@ -13,16 +13,12 @@
 #include "clang/Parse/ParseAST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TargetOptions.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/ASTConsumers.h"
 #include "clang/Lex/Lexer.h"
-
-#include "clang-c/Index.h"
 
 #include <boost/python.hpp>
 
@@ -71,8 +67,7 @@ class ASTDictBuilder : public ASTConsumer,
     /// Clang internally represents ranges where the end location points to the
     /// start of the token at the end. However, for external clients it is more
     /// useful to have a CXSourceRange be a proper half-open interval. This
-    /// routine
-    /// does the appropriate translation.
+    /// routine does the appropriate translation.
     SourceRange translateSourceRange(const SourceRange& range) const {
         // We want the last character in this location, so we will adjust the
         // location accordingly.

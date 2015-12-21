@@ -61,7 +61,8 @@
      }
 
      function fillInfoContainer(container, node) {
-       container.find(".title").html(node["name"] || "");
+       var name = node["name"] || "";
+       container.find(".title").html(name);
        container.find(".description").html(node["description"] || "");
      }
 
@@ -94,6 +95,11 @@
 
          traverse(data.ast, function(obj){
            if (!obj.location) return;
+
+           if (obj.label && obj.spelling) {
+             obj.label += " (" + obj.spelling + ")";
+           }
+
            editor.markText({line:obj.location.start[0]-1,
                             ch:obj.location.start[1]-1},
                            {line:obj.location.end[0]-1,
