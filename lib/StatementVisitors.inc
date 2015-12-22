@@ -74,4 +74,13 @@ bool VisitInitListExpr(const InitListExpr*) {
     return true;
 }
 
+bool VisitCallExpr(const CallExpr*) {
+    auto& node = *current_node;
+    node["label"] = "Function Call";
+    node["description"] = "A call to a function, function pointer, lambda "
+                          "expression or object with an 'operator()'.";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/functions";
+    return true;
+}
+
 #endif

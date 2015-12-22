@@ -8,23 +8,23 @@ app = Flask(__name__)
 def parse_source(source):
     c = CPPParser(source.encode("UTF-8"))
 
-    return json.dumps({
-        "ast": c.ast,
-        "errors": []
-    })
+    return json.dumps(c.ast), json.dumps(c.errors)
 
 
 @app.route("/parse", methods=["GET"])
 def parse_get():
     source = request.args.get('source', '')
+    ast, errors = parse_source(source)
     return render_template("index.html", source=source,
-                           parsed=parse_source(source),
+                           ast=ast,
+                           errors=errors,
                            default_page=False)
 
 
 @app.route("/")
 def index():
-    return render_template('index.html', source="", parsed="\"\"",
+    return render_template('index.html', source="", ast="\"\"",
+                           errors="\"\"",
                            default_page=True)
 
 if __name__ == "__main__":

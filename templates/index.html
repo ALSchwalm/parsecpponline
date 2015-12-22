@@ -91,9 +91,21 @@
            $("#editor-form").submit();
          });
 
-         data = {{parsed | safe}};
+         ast = {{ast | safe}};
+         errors = {{errors | safe}};
 
-         traverse(data.ast, function(obj){
+         for(var i in errors) {
+           var error = errors[i];
+           var div = $("<div>").addClass("alert alert-danger")
+                               .attr("role", "alert");
+           var type = $("<strong>").html("error: ");
+           var message = $("<span>").html(error.location[0] + ":" + error.location[1] +
+                                          ":" + error.message)
+           div.append(type).append(message);
+           $("#editor-container").before(div);
+         }
+
+         traverse(ast, function(obj){
            if (!obj.location) return;
 
            if (obj.label && obj.spelling) {
@@ -108,7 +120,7 @@
          });
 
          $('#tree').tree({
-           data: data.ast,
+           data: ast,
            onCreateLi: function(node, $li) {
              $li.find('div:has(span.jqtree_common)')
                 .hover(function(event){
@@ -135,8 +147,10 @@
 
 
          var idFromURL = parseInt(parent.location.hash.replace("#", ""));
-         var node = $("#tree").tree('getNodeById', idFromURL);
-         $("#tree").tree('selectNode', node);
+         if (idFromURL) {
+           var node = $("#tree").tree('getNodeById', idFromURL);
+           $("#tree").tree('selectNode', node);
+         }
        });
     </script>
   </body>

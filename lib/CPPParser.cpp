@@ -7,6 +7,7 @@
 #endif
 
 #include "clang/Frontend/FrontendActions.h"
+#include "clang/Frontend/TextDiagnosticBuffer.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/AST/ASTContext.h"
@@ -43,11 +44,12 @@ void debug_print_impl(const T&... args) {
 // the ASTConsumer from outside the FrontendFactory, so just use
 // some global state
 boost::python::list global_ast;
+boost::python::list global_errors;
 
 class ASTDictBuilder : public ASTConsumer,
                        public RecursiveASTVisitor<ASTDictBuilder> {
 
-    const SourceManager* SM;
+    const CompilerInstance* Compiler;
     const ASTContext* Context;
     dict* current_node = nullptr;
 
@@ -73,13 +75,14 @@ class ASTDictBuilder : public ASTConsumer,
         // location accordingly.
         auto R = CharSourceRange::getTokenRange(range);
         auto& LangOpts = Context->getLangOpts();
+        auto& SM = Compiler->getSourceManager();
         SourceLocation EndLoc = R.getEnd();
         if (EndLoc.isValid() && EndLoc.isMacroID() &&
-            !SM->isMacroArgExpansion(EndLoc))
-            EndLoc = SM->getExpansionRange(EndLoc).second;
+            !SM.isMacroArgExpansion(EndLoc))
+            EndLoc = SM.getExpansionRange(EndLoc).second;
         if (R.isTokenRange() && EndLoc.isValid()) {
             unsigned Length =
-                Lexer::MeasureTokenLength(SM->getSpellingLoc(EndLoc), *SM,
+                Lexer::MeasureTokenLength(SM.getSpellingLoc(EndLoc), SM,
                                           LangOpts);
             EndLoc = EndLoc.getLocWithOffset(Length - 1);
         }
@@ -90,22 +93,22 @@ class ASTDictBuilder : public ASTConsumer,
 
     template <typename T>
     void addLocation(dict& json_node, const T& ast_node) {
-        list start;
-        list end;
+        list start, end;
         dict location;
+        auto& SM = Compiler->getSourceManager();
         auto range = ast_node->getSourceRange();
         range = translateSourceRange(range);
 
         if (!range.isValid())
             return;
 
-        auto start_loc = SM->getExpansionLoc(range.getBegin());
-        auto end_loc = SM->getExpansionLoc(range.getEnd());
+        auto start_loc = SM.getExpansionLoc(range.getBegin());
+        auto end_loc = SM.getExpansionLoc(range.getEnd());
 
-        auto start_row = SM->getExpansionLineNumber(start_loc);
-        auto start_column = SM->getExpansionColumnNumber(start_loc);
-        auto end_row = SM->getExpansionLineNumber(end_loc);
-        auto end_column = SM->getExpansionColumnNumber(end_loc);
+        auto start_row = SM.getExpansionLineNumber(start_loc);
+        auto start_column = SM.getExpansionColumnNumber(start_loc);
+        auto end_row = SM.getExpansionLineNumber(end_loc);
+        auto end_column = SM.getExpansionColumnNumber(end_loc);
 
         start.append(start_row);
         start.append(start_column);
@@ -166,11 +169,30 @@ public:
 
     virtual bool HandleTopLevelDecl(DeclGroupRef DR) override {
         for (DeclGroupRef::iterator d = DR.begin(), e = DR.end(); d != e; ++d) {
-            if (SM->isInMainFile((*d)->getLocStart())) {
+            if (Compiler->getSourceManager().isInMainFile(
+                    (*d)->getLocStart())) {
                 debug_print("Traversing top level decl: ",
                             (*d)->getDeclKindName());
                 TraverseDecl(*d);
             }
+        }
+
+        // TODO: This should probably be somewhere else
+        auto diag = dynamic_cast<TextDiagnosticBuffer*>(
+            Compiler->getDiagnostics().getClient());
+        for (auto it = diag->err_begin(); it < diag->err_end(); ++it) {
+            dict msg;
+            msg["message"] = it->second;
+
+            list location;
+            auto row =
+                Compiler->getSourceManager().getExpansionLineNumber(it->first);
+            auto column = Compiler->getSourceManager().getExpansionColumnNumber(
+                it->first);
+            location.append(row);
+            location.append(column);
+            msg["location"] = location;
+            global_errors.append(msg);
         }
         return true;
     }
@@ -180,8 +202,13 @@ public:
         this->Context = &Context;
     }
 
-    ASTDictBuilder(const SourceManager* SM) : SM{SM}, current_node{nullptr} {
+    ASTDictBuilder(const CompilerInstance* C)
+        : Compiler{C}, current_node{nullptr} {
         global_ast = list{};
+        global_errors = list{};
+        auto& diagEngine = C->getDiagnostics();
+        auto diagBuffer = new TextDiagnosticBuffer();
+        diagEngine.setClient(diagBuffer);
     }
 };
 
@@ -197,7 +224,7 @@ public:
     virtual std::unique_ptr<clang::ASTConsumer>
     CreateASTConsumer(clang::CompilerInstance& Compiler, llvm::StringRef) {
         return std::unique_ptr<clang::ASTConsumer>(
-            new ASTDictBuilder(&Compiler.getSourceManager()));
+            new ASTDictBuilder(&Compiler));
     }
 };
 
@@ -221,7 +248,8 @@ public:
 
 BOOST_PYTHON_MODULE(cppparser) {
     class_<CPPParser>("CPPParser", init<std::string>())
-        .def_readonly("ast", &global_ast);
+        .def_readonly("ast", &global_ast)
+        .def_readonly("errors", &global_errors);
 }
 
 #ifdef DEBUG
