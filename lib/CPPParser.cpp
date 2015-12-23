@@ -40,17 +40,13 @@ void debug_print_impl(const T&... args) {
 #define debug_print(...)
 #endif
 
-// For now, I don't know how to actually get an argument to
-// the ASTConsumer from outside the FrontendFactory, so just use
-// some global state
-boost::python::list global_ast;
-boost::python::list global_errors;
-
 class ASTDictBuilder : public ASTConsumer,
                        public RecursiveASTVisitor<ASTDictBuilder> {
 
     const CompilerInstance* Compiler;
     const ASTContext* Context;
+    list& ast;
+    list& errors;
     dict* current_node = nullptr;
 
     static std::set<Decl::Kind> declSkipList;
@@ -137,7 +133,7 @@ public:
                 children.append(node);
             } else {
                 debug_print("  Node is at top level");
-                global_ast.append(node);
+                ast.append(node);
             }
             current_node = &node;
         }
@@ -192,7 +188,7 @@ public:
             location.append(row);
             location.append(column);
             msg["location"] = location;
-            global_errors.append(msg);
+            errors.append(msg);
         }
         return true;
     }
@@ -202,10 +198,8 @@ public:
         this->Context = &Context;
     }
 
-    ASTDictBuilder(const CompilerInstance* C)
-        : Compiler{C}, current_node{nullptr} {
-        global_ast = list{};
-        global_errors = list{};
+    ASTDictBuilder(const CompilerInstance* C, list& ast, list& errors)
+        : Compiler{C}, ast{ast}, errors{errors}, current_node{nullptr} {
         auto& diagEngine = C->getDiagnostics();
         auto diagBuffer = new TextDiagnosticBuffer();
         diagEngine.setClient(diagBuffer);
@@ -220,38 +214,33 @@ std::set<Stmt::StmtClass> ASTDictBuilder::stmtSkipList =
      Stmt::ImplicitCastExprClass, Stmt::CXXBindTemporaryExprClass};
 
 class BuildDictFrontendAction : public clang::ASTFrontendAction {
+    list& ast;
+    list& errors;
+
 public:
+    BuildDictFrontendAction(list& ast, list& errors)
+        : ast{ast}, errors{errors} {}
     virtual std::unique_ptr<clang::ASTConsumer>
     CreateASTConsumer(clang::CompilerInstance& Compiler, llvm::StringRef) {
         return std::unique_ptr<clang::ASTConsumer>(
-            new ASTDictBuilder(&Compiler));
+            new ASTDictBuilder(&Compiler, ast, errors));
     }
 };
-
-static llvm::cl::OptionCategory MyToolCategory("");
 
 class CPPParser {
 public:
     CPPParser(std::string str) {
-        const char* argv[] = {"parse", "/tmp/main.cpp", "--", "clang++",
-
-                              // TODO: Fix this hard coded path
-                              "-std=c++11", "-I/usr/lib/clang/3.7.0/include",
-                              "-c"};
-        int argc = sizeof(argv) / sizeof(argv[0]);
-        CommonOptionsParser OptionsParser(argc, argv, MyToolCategory);
-        ClangTool Tool(OptionsParser.getCompilations(), {"/tmp/main.cpp"});
-        Tool.mapVirtualFile("/tmp/main.cpp", str);
-        Tool.run(newFrontendActionFactory<BuildDictFrontendAction>().get());
+        auto action = new BuildDictFrontendAction(ast, errors);
+        runToolOnCodeWithArgs(action, str,
+                              {"-std=c++11", "-I/usr/lib/clang/3.7.0/include"});
     }
+
+    list ast;
+    list errors;
 };
 
 BOOST_PYTHON_MODULE(cppparser) {
     class_<CPPParser>("CPPParser", init<std::string>())
-        .def_readonly("ast", &global_ast)
-        .def_readonly("errors", &global_errors);
+        .def_readonly("ast", &CPPParser::ast)
+        .def_readonly("errors", &CPPParser::errors);
 }
-
-#ifdef DEBUG
-int main() { CPPParser("int main() {}"); }
-#endif
