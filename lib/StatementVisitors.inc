@@ -83,4 +83,14 @@ bool VisitCallExpr(const CallExpr*) {
     return true;
 }
 
+bool VisitDeclRefExpr(const DeclRefExpr* E) {
+    auto& node = *current_node;
+    node["label"] = "Declaration Reference";
+    node["suffix"] = E->getDecl()->getNameAsString();
+    node["description"] = "A declaration reference is a reference to any named "
+                          "entity in the program (function, variable, etc)";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/declarations";
+    return true;
+}
+
 #endif

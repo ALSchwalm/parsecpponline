@@ -108,8 +108,8 @@
          traverse(ast, function(obj){
            if (!obj.location) return;
 
-           if (obj.label && obj.spelling) {
-             obj.label += " (" + obj.spelling + ")";
+           if (obj.label && obj.suffix) {
+             obj.label += " (" + obj.suffix + ")";
            }
 
            editor.markText({line:obj.location.start[0]-1,

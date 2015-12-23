@@ -11,7 +11,7 @@ bool VisitDecl(const Decl* D) {
 
 bool VisitNamedDecl(const NamedDecl* D) {
     auto& node = *current_node;
-    node["spelling"] = D->getNameAsString();
+    node["suffix"] = D->getNameAsString();
     return true;
 }
 
