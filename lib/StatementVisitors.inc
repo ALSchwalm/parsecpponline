@@ -93,4 +93,23 @@ bool VisitDeclRefExpr(const DeclRefExpr* E) {
     return true;
 }
 
+bool VisitStringLiteral(const StringLiteral*) {
+    auto& node = *current_node;
+    node["label"] = "String Literal";
+    node["description"] = "A string is a collection of sequential characters "
+                          "of various possible encodings.";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/string_literal";
+    return true;
+}
+
+bool VisitIntegerLiteral(const IntegerLiteral*) {
+    auto& node = *current_node;
+    node["label"] = "Integer Literal";
+    node["description"] = "An integer literal is a positive or negative whole "
+                          "number expressed in decimal, hexadecimal, octal or "
+                          "binary, that can be directly used in expressions.";
+    node["link"] = "http://en.cppreference.com/w/cpp/language/integer_literal";
+    return true;
+}
+
 #endif

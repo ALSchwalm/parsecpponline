@@ -23,7 +23,9 @@ def parse_get():
 
 @app.route("/")
 def index():
-    return render_template('index.html', source="", ast="\"\"",
+    return render_template('index.html',
+                           source=open("static/examples/helloworld.cpp").read(),
+                           ast="\"\"",
                            errors="\"\"",
                            default_page=True)
 

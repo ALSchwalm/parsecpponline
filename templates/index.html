@@ -25,27 +25,62 @@
           </div>
         </div>
       </nav>
-      <div id="editor-container" class="jumbotron">
+      <div id="primary-container">
         <div class="row">
           <form action="/parse" method="GET" id="editor-form">
-          {% if not default_page %}
-            <div id="tree" class="col-md-4"></div>
-            <textarea id="editor" class="editor col-md-8" name="source">{{source}}</textarea>
-          {% else %}
-            <div id="editor-run" class="editor-control button">Parse</div>
-            <textarea id="editor" class="editor col-md-12" name="source">{{source}}</textarea>
+              {% if not default_page %}
+              <div class="col-md-5">
+                <div class="panel panel-default">
+                  <div class="panel-heading clearfix">
+                    <div class="panel-title pull-left" style="padding-top:7px;">Syntax Tree</div>
+                    <button class="collapse-button btn btn-default pull-right">
+                      <i class="glyphicon glyphicon-triangle-right"></i>
+                    </button>
+                    <button class="expand-button btn btn-default pull-right">
+                      <i class="glyphicon glyphicon-triangle-bottom"></i>
+                    </button>
+                  </div>
+                  <div class="panel-body">
+                      <div id="tree"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="editor-container col-md-7">
+                <div class="panel panel-default">
+                  <div class="panel-heading clearfix">
+                    <div class="panel-title pull-left" style="padding-top:7px;"></div>
+                    <button class="parse-button btn btn-default pull-right">Parse</button>
+                  </div>
+                  <div class="panel-body">
+                    <textarea id="editor" class="editor" name="source">{{source}}</textarea>
+                  </div>
+                </div>
+                <div id="info-container" class="col-md-12">
+                    <div class="panel panel-default">
+                      <div class="panel-heading">
+                        <h3 class="panel-title title"></h3>
+                      </div>
+                      <div class="panel-body description"></div>
+                    </div>
+                  </div>
+              </div>
+              {% else %}
+              <div class="editor-container col-md-12">
+                <div class="panel panel-default">
+                  <div class="panel-heading clearfix">
+                    <div class="panel-title pull-left" style="padding-top:7px;"></div>
+                    <button class="parse-button btn btn-default pull-right" id="editor-run">Parse</button>
+                  </div>
+                  <div class="panel-body">
+                    <textarea id="editor" class="editor" name="source">{{source}}</textarea>
+                  </div>
+                </div>
+              </div>
           {% endif %}
           </form>
         </div>
       </div>
-      <div id="info-container" class="jumbotron">
-        <div class="row">
-          <div id="tree" class="col-md-12">
-            <h2 class="title"></h2>
-            <p class="description"></p>
-          </div>
-        </div>
-      </div>
+
     </div>
     <script type="text/javascript">
      function traverse(obj, callback) {
@@ -102,7 +137,7 @@
            var message = $("<span>").html(error.location[0] + ":" + error.location[1] +
                                           ":" + error.message)
            div.append(type).append(message);
-           $("#editor-container").before(div);
+           $("#primary-container").before(div);
          }
 
          traverse(ast, function(obj){
@@ -121,6 +156,7 @@
 
          $('#tree').tree({
            data: ast,
+           autoOpen: 1,
            onCreateLi: function(node, $li) {
              $li.find('div:has(span.jqtree_common)')
                 .hover(function(event){
@@ -144,7 +180,6 @@
              }
            }
          );
-
 
          var idFromURL = parseInt(parent.location.hash.replace("#", ""));
          if (idFromURL) {

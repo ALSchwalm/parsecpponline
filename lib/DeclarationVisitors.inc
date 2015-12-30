@@ -94,4 +94,10 @@ bool VisitFieldDecl(const FieldDecl*) {
     return true;
 }
 
+bool VisitValueDecl(const ValueDecl* D) {
+    auto& node = *current_node;
+    node["type"] = D->getType().getAsString();
+    return true;
+}
+
 #endif
