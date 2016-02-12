@@ -232,7 +232,7 @@ public:
     CPPParser(std::string str) {
         auto action = new BuildDictFrontendAction(ast, errors);
         runToolOnCodeWithArgs(action, str,
-                              {"-std=c++11", "-I/usr/lib/clang/3.7.0/include"});
+                              {"-std=c++14", "-I/usr/lib/clang/3.7.1/include"});
     }
 
     list ast;
